@@ -4,9 +4,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "header.c"
 #define PORT 8080
+#define GET 0
 
+char _StatusOK[2000] = "HTTP/1.1 200 OK\nContent-Type:text/plain\nContent-Length:12\n\nHello world!";
 // struct sockaddr_in {
 //     short            sin_family;   // e.g. AF_INET
 //     unsigned short   sin_port;     // e.g. htons(3490)‏
@@ -51,7 +53,9 @@ int main() {
             char buffer[3000] = {0};
             valread = read(new_socket, buffer, 3000);
             printf("%s\n", buffer);
-            write(new_socket, hello, strlen(hello));
+            char * recv_buffer = generate_header(0, "/index.html");
+            printf("recv header:\n %s\n", recv_buffer);
+            write(new_socket, recv_buffer, 3000);
             close(new_socket);
         }
     }

@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/ccrr/http-server'
+gcc client.c -o client
+gcc server.c -o server
+make: Leaving directory '/home/ccrr/http-server'
+ 
