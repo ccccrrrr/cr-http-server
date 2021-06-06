@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mount.c"
 #include "parseRequest.c"
+#include "method.c"
 char Content_Type[][20] = {
     "text/html",
     "text/plain", 
@@ -11,99 +11,141 @@ char Content_Type[][20] = {
     "image/png"
 };
 
-/* char _StatusOK[2000] = "HTTP/1.1 200 OK\nContent-Type:text/plain\nContent-Length:12\n\nHello world!";
- */
-/* default method: GET default path: root path*/
-#define INDEX "/index.html"
-int get_file_path(char * path, char * relative_path) {
-    strcat(path, mount_path);
-    strcat(path, relative_path);
-    printf("mount_path %s relative_path %s path %s\n", mount_path, relative_path, path);
-    char file_type_name[20] = {0};
-    int ptr = 0;
-    int i = 0;
-    while(relative_path[i] == '.') {
-        ptr = i; i++;
-    }
-    strcpy(file_type_name, &relative_path[ptr+1]);
-    if(strcmp(file_type_name, "html")) {
-        return 0;
-    }else if(strcmp(file_type_name, "txt")) {
-        return 1;
-    }else if(strcmp(file_type_name, "gif")) {
-        return 2;
-    }else if(strcmp(file_type_name, "jpeg")) {
-        return 3;
-    }else if(strcmp(file_type_name, "png")) {
-        return 4;
-    }
-}
-
-int read_file(const char * path, char * html_buffer) {
-    int ptr = 0;
-    FILE * fp = fopen(path, "r");
-    printf("file path: %s\n", path);
-    
-    if(fp != NULL) {
-        while(!feof(fp)) {
-            html_buffer[ptr++] = fgetc(fp);
-        }
-        html_buffer[ptr - 1] = 0;
-        fclose(fp);
-    }else {
-        printf("failed to open the file!\n");
-        // memset(buf, 0, sizeof(buf));
-        return 404;
-    }
-    return 200;
-}
+extern const char mount_path[50];
 
 void get_content_length(char * content_length, char * content_buffer) {
     sprintf(content_length, "%d", strlen(content_buffer));
 }
 
-const char * generate_header(char http_method, const char * relative_path, const char * raw_request) {
-    static char buf[3000] = {0};
-    memset(buf, 0, sizeof(buf));
-    strcat(buf, "HTTP/1.1 ");
-    // int result = search_through_path(relative_path);
-    // int result = 200;
-    struct Request * request = parseRequest((const char *)raw_request);
-    
-    char path[50] = {0};
-    int my_file_type = get_file_path(path, request->relative_path);
 
-    char html_buffer[2000] = {0};
-    memset(html_buffer, 0, sizeof(html_buffer));
-    int result = read_file(path, html_buffer);
 
+void concat_status(char * recv_buffer, int result) {
     switch(result) {
         case 200:
-            strcat(buf, "200 ok\n");
+            strcat(recv_buffer, " 200 ok\r\n");
+            
             break;
         case 404:
-            strcat(buf, "404 Not Found\n");
-            strcat(buf, "Content-Type: text/html");
-            return buf;
+            strcat(recv_buffer, " 404 Not Found\r\n");
+            strcat(recv_buffer, "Content-Type: text/html");
+            return;
         case 400:
-        default: 
+            break;
+        default:
+            break;
     }
-    strcat(buf, "Content-Type: ");
-    strcat(buf, Content_Type[my_file_type]);
-    strcat(buf, "\n");
+}
 
-    printf("path: %s\n", path);
-    int ptr = 0;
-    // memset(path, 0, sizeof(path));
-    // strcpy(path, "/home/ccrr/http-server/root/index.html");
+void concat_type(char * recv_buffer, int type) {
+    strcat(recv_buffer, "Content-Type: ");
+    strcat(recv_buffer, Content_Type[type]);
+    strcat(recv_buffer, "\n");
+}
 
-    char content_length[10] = {0};
-    // itoa(ptr, content_length, 10);
-    // sprintf(content_length, "%d", ptr);
-    strcat(buf, "Content-Length: ");
-    strcat(buf, content_length);
-    strcat(buf, "\n\n");
-    strcat(buf, html_buffer); 
-    printf("html buffer:\n%s\n", buf);
-    return buf;
+
+void convert_response_to_buffer(struct Response * response, char * recv_buffer) {
+    strcat(recv_buffer, response->protocal);
+    
+    switch(response->return_status) {
+        case 200:
+            concat_status(recv_buffer, response->file->result);
+            if(response->file->result == 404)
+                return;
+
+            concat_type(recv_buffer, response->file->type);
+            // printf("path: %s\n", path);
+            int ptr = 0;
+
+            char content_length[10] = {0};
+            get_content_length(content_length, response->file->content);
+
+            strcat(recv_buffer, "Content-Length: ");
+            strcat(recv_buffer, content_length);
+            strcat(recv_buffer, "\n\n");
+            strcat(recv_buffer, response->file->content);
+            printf("html buffer:\n%s\n", recv_buffer);
+
+            break;
+        case 404:
+            strcat(recv_buffer, " 404 Not Found\r\n\r\n");
+            return;
+        case 400:
+            break;
+        default: break;
+    }
+    strcat(recv_buffer, response->content);
+    return;
+}
+
+void read_content(char * content, const char * raw_request) {
+    int ptr1 = 0;
+    int ptr2 = 0;
+    while(1) {
+        if (raw_request[ptr2] == '\r' && raw_request[ptr2 + 1] == '\n' && raw_request[ptr2 + 2] == '\r' && raw_request[ptr2 + 3] == '\n')
+            break;
+        ptr2++;
+    }
+    ptr2 += 4;
+    while(raw_request[ptr2] != 0) {
+        content[ptr1++] = raw_request[ptr2];
+    }
+}
+
+void generate_header(const char * raw_request, char * recv_buffer) {
+
+    struct Request request;
+    memset(&request, 0, sizeof(struct Request));
+    parseRequest((const char *)raw_request, &request);
+
+    struct Response response;
+    response.file = (struct file_reader *)malloc(sizeof(struct file_reader));
+    memset(response.file, 0, sizeof(struct file_reader));
+    char content[2000] = {0};
+    memset(content, 0, sizeof(content));
+    switch(request.method) {
+        case METHOD_GET:
+            method_get(&request, &response);
+            break;
+        case METHOD_POST:
+            read_content(content, raw_request);
+
+            method_post(&request, &response, content);
+            break;
+        case METHOD_DELETE:
+            method_delete(&request, &response);
+            break;
+        default:
+            printf("undefined method.\n");
+            method_undefined(&request, &response);
+            return;
+    }
+    if(response.return_status == 404) {
+        return;
+    }
+    memset(recv_buffer, 0, sizeof(*recv_buffer));
+    convert_response_to_buffer(&response, recv_buffer);
+//    convert_response_to_buffer(recv_buffer, &response);
+    // printf("protocal: %s\n", request.protocal);
+    // strcat(recv_buffer, request.protocal);
+
+    // struct file_reader file;
+    // get_file(&request, &file);
+
+    // concat_status(recv_buffer, file.result);
+    // if(file.result == 404)
+    //     return;
+    
+    // concat_type(recv_buffer, file.type);
+
+    // // printf("path: %s\n", path);
+    // int ptr = 0;
+
+    // char content_length[10] = {0};
+    // get_content_length(content_length, file.content);
+
+    // strcat(recv_buffer, "Content-Length: ");
+    // strcat(recv_buffer, content_length);
+    // strcat(recv_buffer, "\n\n");
+    // strcat(recv_buffer, file.content); 
+    // printf("html buffer:\n%s\n", recv_buffer);
 }
