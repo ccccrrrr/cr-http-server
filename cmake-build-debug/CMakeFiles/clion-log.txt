@@ -1,4 +1,4 @@
-/home/ccrr/Downloads/clion-2021.1.2/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ccrr/http-server-2
+/home/ccrr/Downloads/clion-2021.1.2/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ccrr/http-server
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/ccrr/http-server-2/cmake-build-debug
+-- Build files have been written to: /home/ccrr/http-server/cmake-build-debug

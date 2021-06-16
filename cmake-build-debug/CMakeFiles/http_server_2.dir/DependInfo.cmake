@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/home/ccrr/http-server-2/server.c" "/home/ccrr/http-server-2/cmake-build-debug/CMakeFiles/http_server_2.dir/server.c.o"
+  "/home/ccrr/http-server/server.c" "/home/ccrr/http-server/cmake-build-debug/CMakeFiles/http_server_2.dir/server.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

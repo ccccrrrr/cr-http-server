@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = 
 
-C_INCLUDES = -I/home/ccrr/http-server-2/.
+C_INCLUDES = -I/home/ccrr/http-server/.
 
 C_FLAGS = -g -std=gnu11
 

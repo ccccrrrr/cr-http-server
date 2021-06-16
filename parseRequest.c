@@ -1,15 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "header.h"
-
+#include "util/regex.c"
 
 extern const char mount_path[50];
-
-
 // parse request through raw request buffer
 void parseRequest(const char * raw_request, struct Request * req) {
-    // struct Request * temp = (struct Request *)malloc(sizeof(struct Request));
+
     memset(req, 0, sizeof(struct Request));
     char _temp[20] = {0};
     memset(_temp, 0, sizeof(_temp));
@@ -45,5 +41,16 @@ void parseRequest(const char * raw_request, struct Request * req) {
     }
     strcpy(req->protocal, _temp);
     // printf("request: %s %s", req->relative_path, req->protocal);
-    return;
+}
+
+void parse_request2(const char *raw_request, struct Request * req) {
+    parse_header(raw_request, 65535, &req->is_keep_alive, &req->request_length, req->content_type, req->str_method, req->relative_path, req->protocal);
+    if(strcmp(req->str_method, "GET") == 0)
+        req->method = METHOD_GET;
+    else if(strcmp(req->str_method, "POST") == 0)
+        req->method = METHOD_POST;
+    else if(strcmp(req->str_method, "DELETE") == 0)
+        req->method = METHOD_DELETE;
+    else
+        req->method = METHOD_UNDEFINED;
 }
